@@ -44,7 +44,11 @@ func main() {
 
     if bytes.Equal(p_req[0][1], []byte("/")) {
         conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
-    } else {
+    } else if bytes.Equal(p_req[0][1][0:6], []byte("/echo/")) {
+        content := p_req[0][1][6:]
+        out := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(content), content)
+        conn.Write([]byte(out))
+    }else {
         conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
     }
 }
