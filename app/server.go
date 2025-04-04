@@ -48,7 +48,16 @@ func main() {
         content := p_req[0][1][6:]
         out := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(content), content)
         conn.Write([]byte(out))
-    }else {
+    } else if bytes.Equal(p_req[0][1], []byte("/user-agent")) {
+        for i:=0; i < len(p_req); i++ {
+            if bytes.Equal(p_req[i][0], []byte("User-Agent:")) {
+                agent := p_req[i][1]
+                out := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: test/plain\r\nContent-Length: %d\r\n\r\n%s", len(agent), agent)
+                conn.Write([]byte(out))
+                break
+            }
+        }
+    } else {
         conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
     }
 }
