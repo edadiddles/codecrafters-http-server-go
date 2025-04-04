@@ -52,7 +52,7 @@ func main() {
         for i:=0; i < len(p_req); i++ {
             if bytes.Equal(p_req[i][0], []byte("User-Agent:")) {
                 agent := p_req[i][1]
-                out := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: test/plain\r\nContent-Length: %d\r\n\r\n%s", len(agent), agent)
+                out := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s", len(agent), agent)
                 conn.Write([]byte(out))
                 break
             }
