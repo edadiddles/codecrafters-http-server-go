@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+    "io"
     "bytes"
 )
 
@@ -64,6 +65,23 @@ func handleRequest(conn net.Conn) {
                 conn.Write([]byte(out))
                 break
             }
+        }
+    } else if bytes.Equal(p_req[0][1][0:7], []byte("/files/")) {
+        filename := string(p_req[0][1][7:])
+        f, err := os.Open("/tmp/"+filename)
+        if err != nil {
+            conn.Write([]byte("HTTP/1.1 400 Not Found\r\n\r\n"))
+        } else {
+            content := make([]byte, 0)
+            _, err := f.Read(content)
+            for err != io.EOF {
+                c := make([]byte, 10)
+                _, err = f.Read(c)
+                content = append(content, c...)
+            }
+            
+            out := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(content), content)
+            conn.Write([]byte(out))
         }
     } else {
         conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
