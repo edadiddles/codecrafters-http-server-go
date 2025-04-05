@@ -19,6 +19,7 @@ func main() {
 	}
     defer l.Close()
 
+    dir := os.Args[2]
     for {
         conn, err := l.Accept()
         if err != nil {
@@ -27,11 +28,11 @@ func main() {
         }
         defer conn.Close()
 
-        go handleRequest(conn)
+        go handleRequest(conn, dir)
     }
 }
 
-func handleRequest(conn net.Conn) {
+func handleRequest(conn net.Conn, dir string) {
     req := make([]byte, 100)
     conn.Read(req)
 
@@ -68,7 +69,7 @@ func handleRequest(conn net.Conn) {
         }
     } else if bytes.Equal(p_req[0][1][0:7], []byte("/files/")) {
         filename := string(p_req[0][1][7:])
-        f, err := os.Open("/tmp/"+filename)
+        f, err := os.Open(dir+filename)
         if err != nil {
             conn.Write([]byte("HTTP/1.1 400 Not Found\r\n\r\n"))
         } else {
