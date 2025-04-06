@@ -19,7 +19,11 @@ func main() {
 	}
     defer l.Close()
 
-    dir := os.Args[2]
+    dir := ""
+    if len(os.Args) > 2 {
+        dir = os.Args[2]
+    }
+
     for {
         conn, err := l.Accept()
         if err != nil {
@@ -71,15 +75,18 @@ func handleRequest(conn net.Conn, dir string) {
         filename := string(p_req[0][1][7:])
         f, err := os.Open(dir+filename)
         if err != nil {
-            conn.Write([]byte("HTTP/1.1 400 Not Found\r\n\r\n"))
+            conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
         } else {
             content := make([]byte, 0)
             _, err := f.Read(content)
             for err != io.EOF {
-                c := make([]byte, 10)
+                c := make([]byte, 1)
                 _, err = f.Read(c)
-                content = append(content, c...)
+                if !bytes.Equal(c, []byte(string('\x00'))) {
+                    content = append(content, c...)
+                }
             }
+
             
             out := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(content), content)
             conn.Write([]byte(out))
