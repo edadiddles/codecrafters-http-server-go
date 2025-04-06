@@ -37,14 +37,17 @@ func main() {
 }
 
 func handleRequest(conn net.Conn, dir string) {
-    req := make([]byte, 100)
+    req := make([]byte, 800)
     conn.Read(req)
-
     p_req := make([][][]byte, 0)
     vals := make([][]byte, 0)
     beg_idx := 0
     for i:=0; i < len(req); i++ {
-        if req[i] == ' ' {
+        if req[i] == '\x00' {
+            vals = append(vals, req[beg_idx:i])
+            p_req = append(p_req, vals)
+            break
+        } else if req[i] == ' ' {
             vals = append(vals, req[beg_idx:i])
             beg_idx = i+1
         } else if req[i] == '\r' && len(req) >= i+1 && req[i+1] == '\n' {
@@ -73,23 +76,28 @@ func handleRequest(conn net.Conn, dir string) {
         }
     } else if bytes.Equal(p_req[0][1][0:7], []byte("/files/")) {
         filename := string(p_req[0][1][7:])
-        f, err := os.Open(dir+filename)
-        if err != nil {
-            conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-        } else {
-            content := make([]byte, 0)
-            _, err := f.Read(content)
-            for err != io.EOF {
-                c := make([]byte, 1)
-                _, err = f.Read(c)
-                if !bytes.Equal(c, []byte(string('\x00'))) {
-                    content = append(content, c...)
+        if bytes.Equal(p_req[0][1], []byte("GET")) {
+            f, err := os.Open(dir+filename)
+            if err != nil {
+                conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+            } else {
+                content := make([]byte, 0)
+                _, err := f.Read(content)
+                for err != io.EOF {
+                    c := make([]byte, 1)
+                    _, err = f.Read(c)
+                    if !bytes.Equal(c, []byte(string('\x00'))) {
+                        content = append(content, c...)
+                    }
                 }
+                
+                out := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(content), content)
+                conn.Write([]byte(out))
             }
-
-            
-            out := fmt.Sprintf("HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: %d\r\n\r\n%s", len(content), content)
-            conn.Write([]byte(out))
+        } else if bytes.Equal(p_req[0][1], []byte("POST")) {
+            content := p_req[len(p_req)-1][0]
+            os.WriteFile(dir+filename, content, 0666)
+            conn.Write([]byte("HTTP/1.1 201 Created\r\n"))
         }
     } else {
         conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
